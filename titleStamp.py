@@ -2,6 +2,7 @@ import os
 import re as regex
 import subprocess
 import tempfile
+import time
 
 # ======================================================================================================================
 # =========================================== START OF CONFIG ==========================================================
@@ -23,7 +24,7 @@ sub_pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})"    # _2021-09-01
 # ======================================================================================================================
 
 extensions = (".mp4", ".mkv", ".png", ".jpeg", ".jpg")
-
+dir_exception = [r"B:\▬ Videos and Photos ▬\(HANDBRAKE THESE FUCKERS)", r"B:\▬ Videos and Photos ▬\(New Recordings)"]
 # ======================================================================================================================
 # =========================================== END OF CONFIG ============================================================
 # ======================================================================================================================
@@ -52,7 +53,11 @@ def print_summary():
 def execute_recursively():
     directory = input("Enter directory: ")
     for root, dirs, files in os.walk(directory):
-        change_timestamp_with_title(root, files)
+        if root in dir_exception:
+            print(f"(Exception) Skipping directory: {root}")
+            continue
+        else:
+            change_timestamp_with_title(root, files)
     return
 
 def execute_only_path():

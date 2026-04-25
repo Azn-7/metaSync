@@ -35,6 +35,8 @@ processed_count = 0
 access_denied_count = 0
 ps_commands = []
 
+skipped_files = []
+
 # Pre-compile regex patterns for performance scaling
 regex_OBS = regex.compile(pattern_OBS)
 regex_NVIDIA = regex.compile(pattern_NVIDIA)
@@ -42,13 +44,26 @@ regex_VRChat = regex.compile(pattern_VRChat)
 regex_Screenshot = regex.compile(pattern_Screenshot)
 regex_Steam_Screenshot = regex.compile(pattern_Steam_Screenshot)
 
+def print_skipped_files():
+    while(True):
+        user_choice = input("List skipped files (y/n)?: ")
+        if user_choice in ("y", "yes", "hai", "si", "ye", "yeah", "yup", "yep", "ja", "oui"):
+            print(f"\n================ SKIPPED FILES ================")
+            for item in skipped_files:
+                print(item)
+            break
+        elif user_choice in ("n", "no", "non", "nein", "nyet", "nope", "nah", "nuh"):
+            break
+    return
+
 def print_summary():
-    print(f"\n===============================")
+    print_skipped_files()
+    print(f"\n=================== SUMMARY ===================")
     print(f"PROCESSED: {processed_count}")
     print(f"SKIPPED: {skipped_count}")
     print(f"ACCESS DENIED (Read only?): {access_denied_count}")
     print(f"ERROR: {error_count}")
-    print("===============================\n")
+    print("================================================\n")
 
 def execute_recursively():
     directory = input("Enter directory: ")
@@ -71,6 +86,7 @@ def change_timestamp_with_title(root, files):
     for filename in files:
         if not filename.lower().endswith(extensions):
             print(f"Skipping {filename} - Invalid Extension.")
+            skipped_files.append(filename)
             skipped_count += 1
             continue
         
@@ -93,6 +109,7 @@ def change_timestamp_with_title(root, files):
             processed_count += 1
         else:
             print(f"Skipping {filename} - Pattern did not match.")
+            skipped_files.append(filename)
             skipped_count += 1
     return
 

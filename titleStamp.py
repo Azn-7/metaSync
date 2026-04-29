@@ -10,11 +10,14 @@ import time
 
 # =========================================== REGEX PATTERNS ===========================================================
 # ! Ensure the order of the patterns are unique and cannot have similarity conflicts with others !
-pattern_OBS = r"(\d{4})\-(\d{2})\-(\d{2}) (\d{2})\-(\d{2})\-(\d{2})"        # 2026-02-27 21-49-06
-pattern_NVIDIA = r"(\d{4})\.(\d{2})\.(\d{2}) - (\d{2})\.(\d{2})\.(\d{2})"   # 2024.09.30 - 20.56.37.04 (NOT INCLUDING "".04")
-pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})_(\d{2})\-(\d{2})\-(\d{2})"    # _2021-09-01_21-20-52
-pattern_Screenshot = r"Screenshot (\d{4})\-(\d{2})\-(\d{2}) (\d{2})(\d{2})(\d{2})"    # Screenshot 2026-04-18 175856.png
-pattern_Steam_Screenshot = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_1"    # 20190119184452_1
+TIMESTAMPS_PATTERNS = [
+    r"(\d{4})\-(\d{2})\-(\d{2}) (\d{2})\-(\d{2})\-(\d{2})",             # OBS:                  2026-02-27 21-49-06
+    r"(\d{4})\.(\d{2})\.(\d{2}) \- (\d{2})\.(\d{2})\.(\d{2})",          # NVIDIA:               2024.09.30 - 20.56.37.04
+    r"_(\d{4})\-(\d{2})\-(\d{2})_(\d{2})\-(\d{2})\-(\d{2})",            # VRCHAT Photos:        VRChat_2026-01-05_06-17-15.741_2560x1440
+    r"Screenshot (\d{4})\-(\d{2})\-(\d{2}) (\d{2})(\d{2})(\d{2})",      # Windows Screenshot:   Screenshot 2026-04-18 175856.png
+    r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_1",                    # Steam Screenshot:     20190119184452_1
+    r"Robloxapp-(\d{4})(\d{2})(\d{2})\-(\d{2})(\d{2})(\d{2})"           # Roblox:               Robloxapp-20230215-2302123
+]
 # ======================================================================================================================
 
 # =========================================== SUB REGEX PATTERNS ===========================================================
@@ -38,11 +41,10 @@ ps_commands = []
 skipped_files = []
 
 # Pre-compile regex patterns for performance scaling
-regex_OBS = regex.compile(pattern_OBS)
-regex_NVIDIA = regex.compile(pattern_NVIDIA)
-regex_VRChat = regex.compile(pattern_VRChat)
-regex_Screenshot = regex.compile(pattern_Screenshot)
-regex_Steam_Screenshot = regex.compile(pattern_Steam_Screenshot)
+# compiled_patterns = [regex.compile(pattern) for pattern in TIMESTAMPS_PATTERNS]
+compiled_patterns = []
+for patterns in TIMESTAMPS_PATTERNS:
+    compiled_patterns.append(regex.compile(patterns))
 
 def print_skipped_files():
     while(True):
@@ -91,7 +93,12 @@ def change_timestamp_with_title(root, files):
             continue
         
         # Checks for appropiate regex patterns
-        regex_match = regex_OBS.search(filename) or regex_NVIDIA.search(filename) or regex_VRChat.search(filename) or regex_Screenshot.search(filename) or regex_Steam_Screenshot.search(filename)
+        regex_match = None
+
+        for compiled_regex in compiled_patterns:
+            regex_match = compiled_regex.search(filename)
+            if regex_match:
+                break
 
         if regex_match:
             # Extract parts

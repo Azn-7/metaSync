@@ -1,8 +1,7 @@
-import os
-import re as regex
-import subprocess
-import tempfile
-import time
+import os           # Navigates through files
+import re as regex  # Detect timestamp patterns
+import subprocess   # Calls powershell to modify metadata
+import tempfile     # Powershell will create .ps1 files during batches, so this will keep temp files organized
 
 # ======================================================================================================================
 # =========================================== START OF CONFIG ==========================================================
@@ -26,8 +25,11 @@ TIMESTAMPS_PATTERNS = [
 sub_pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})"    # _2021-09-01
 # ======================================================================================================================
 
-extensions = (".mp4", ".mkv", ".png", ".jpeg", ".jpg")
-dir_exception = [r"B:\▬ Videos and Photos ▬\(HANDBRAKE THESE FUCKERS)", r"B:\▬ Videos and Photos ▬\(New Recordings)"]
+EXTENSIONS = (".mp4", ".mkv", ".png", ".jpeg", ".jpg")
+DIR_EXCEPTIONS = [
+    r"B:\▬ Videos and Photos ▬\(HANDBRAKE THESE FUCKERS)", 
+    r"B:\▬ Videos and Photos ▬\(New Recordings)"
+]
 # ======================================================================================================================
 # =========================================== END OF CONFIG ============================================================
 # ======================================================================================================================
@@ -70,7 +72,7 @@ def print_summary():
 def execute_recursively():
     directory = input("Enter directory: ")
     for root, dirs, files in os.walk(directory):
-        if root in dir_exception:
+        if root in DIR_EXCEPTIONS:
             print(f"(Exception) Skipping directory: {root}")
             continue
         else:
@@ -86,7 +88,7 @@ def execute_only_path():
 def change_timestamp_with_title(root, files):
     global error_count, skipped_count, processed_count, ps_commands
     for filename in files:
-        if not filename.lower().endswith(extensions):
+        if not filename.lower().endswith(EXTENSIONS):
             print(f"Skipping {filename} - Invalid Extension.")
             skipped_files.append(filename)
             skipped_count += 1

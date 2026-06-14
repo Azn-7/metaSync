@@ -4,7 +4,7 @@ A Python utility that syncs file metadata (creation and last-modified timestamps
 
 ## Overview
 
-Many apps — OBS, NVIDIA ShadowPlay, VRChat, Steam, Samsung Gallery, Android cameras, and Windows screenshot tools — embed a timestamp directly in the filename when saving media. `titleStamp.py` reads that timestamp, then sets the file's `CreationTime` and `LastWriteTime` metadata to match, so your files sort chronologically by when they were actually captured rather than when they were copied or transferred.
+Many apps — OBS, NVIDIA ShadowPlay, VRChat, Steam, Samsung Gallery, Android cameras, Apple Photos, and Windows screenshot tools — embed a timestamp directly in the filename when saving media. `titleStamp.py` reads that timestamp, then sets the file's `CreationTime` and `LastWriteTime` metadata to match, so your files sort chronologically by when they were actually captured rather than when they were copied or transferred.
 
 ## Supported Filename Formats (Mutable)
 
@@ -16,6 +16,7 @@ Many apps — OBS, NVIDIA ShadowPlay, VRChat, Steam, Samsung Gallery, Android ca
 | Windows Screenshot | `Screenshot YYYY-MM-DD HHMMSS` | `Screenshot 2026-04-18 175856.png` |
 | Steam Screenshot | `YYYYMMDDHHMMSS_1` | `20190119184452_1.jpg` |
 | Samsung / Android | `YYYYMMDD_HHMMSS` | `20260506_155609.jpg` |
+| Apple Photos | `IMG_YYYYMMDD_HHMMSS` | `IMG_20260502_022119.heic` |
 | Generic Android | `YYYYMMDDHHMMSS` | `20260509105257.mp4` |
 
 ## Adding a Custom Filename Format
@@ -45,7 +46,7 @@ PATTERNS = [
 
 ## Supported File Types (Mutable)
 
-`.mp4`, `.mkv`, `.png`, `.jpeg`, `.jpg`
+`.mp4`, `.mkv`, `.png`, `.jpeg`, `.jpg`, `.heic`
 
 ## Requirements
 

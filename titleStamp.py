@@ -10,13 +10,14 @@ import argparse
 
 # =========================================== REGEX PATTERNS ===========================================================
 # ! Ensure the order of the patterns are unique and cannot have similarity conflicts with others !
-pattern_OBS = r"(\d{4})\-(\d{2})\-(\d{2}) (\d{2})\-(\d{2})\-(\d{2})"        # 2026-02-27 21-49-06
-pattern_NVIDIA = r"(\d{4})\.(\d{2})\.(\d{2}) - (\d{2})\.(\d{2})\.(\d{2})"   # 2024.09.30 - 20.56.37.04 (NOT INCLUDING "".04")
-pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})_(\d{2})\-(\d{2})\-(\d{2})"    # _2021-09-01_21-20-52
-pattern_Screenshot = r"Screenshot (\d{4})\-(\d{2})\-(\d{2}) (\d{2})(\d{2})(\d{2})"    # Screenshot 2026-04-18 175856.png
-pattern_Steam_Screenshot = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_1"    # 20190119184452_1
-pattern_Samsung = r"(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})"   # 20260506_155609
-pattern_Generic = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})"    # 20260509105257 (Includes many typical Android media regex)
+pattern_OBS = r"(\d{4})\-(\d{2})\-(\d{2}) (\d{2})\-(\d{2})\-(\d{2})"                    # 2026-02-27 21-49-06
+pattern_NVIDIA = r"(\d{4})\.(\d{2})\.(\d{2}) - (\d{2})\.(\d{2})\.(\d{2})"               # 2024.09.30 - 20.56.37.04 (NOT INCLUDING "".04")
+pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})_(\d{2})\-(\d{2})\-(\d{2})"                # _2021-09-01_21-20-52
+pattern_Screenshot = r"Screenshot (\d{4})\-(\d{2})\-(\d{2}) (\d{2})(\d{2})(\d{2})"      # Screenshot 2026-04-18 175856.png
+pattern_Steam_Screenshot = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_1"              # 20190119184452_1
+pattern_apple = r"IMG\_(\d{4})(\d{2})(\d{2})\_(\d{2})(\d{2})(\d{2})"                    # IMG_20260502_022119
+pattern_Samsung = r"(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})"                        # 20260506_155609
+pattern_Generic = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})"                         # 20260509105257 (Includes many typical Android media regex)
 
 
 # Pre-compile regex patterns for performance scaling
@@ -27,7 +28,8 @@ PATTERNS = [
     regex.compile(pattern_Screenshot),
     regex.compile(pattern_Steam_Screenshot),
     regex.compile(pattern_Samsung),
-    regex.compile(pattern_Generic)
+    regex.compile(pattern_Generic),
+    regex.compile(pattern_apple)
 ]
 
 # ======================================================================================================================
@@ -38,7 +40,7 @@ PATTERNS = [
 sub_pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})"    # _2021-09-01
 # ======================================================================================================================
 
-extensions = (".mp4", ".mkv", ".png", ".jpeg", ".jpg")
+extensions = (".mp4", ".mkv", ".png", ".jpeg", ".jpg", ".heic")
 
 # ======================================================================================================================
 # =========================================== END OF CONFIG ============================================================
@@ -77,7 +79,7 @@ def change_timestamp_with_title(root, files):
             continue
         
         # Checks for appropiate regex patterns
-        regex_match = next((match for pattern in PATTERNS if (match := pattern.search(filename))), None)    # TODO: Understand this more
+        regex_match = next((match for pattern in PATTERNS if (match := pattern.search(filename))), None)
 
         if regex_match:
             # Extract parts

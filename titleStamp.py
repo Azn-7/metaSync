@@ -2,7 +2,6 @@ import os
 import re as regex
 import subprocess
 import tempfile
-import argparse
 
 # ======================================================================================================================
 # =========================================== START OF CONFIG ==========================================================
@@ -15,21 +14,6 @@ pattern_NVIDIA = r"(\d{4})\.(\d{2})\.(\d{2}) - (\d{2})\.(\d{2})\.(\d{2})"   # 20
 pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})_(\d{2})\-(\d{2})\-(\d{2})"    # _2021-09-01_21-20-52
 pattern_Screenshot = r"Screenshot (\d{4})\-(\d{2})\-(\d{2}) (\d{2})(\d{2})(\d{2})"    # Screenshot 2026-04-18 175856.png
 pattern_Steam_Screenshot = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_1"    # 20190119184452_1
-pattern_Samsung = r"(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})"   # 20260506_155609
-pattern_Generic = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})"    # 20260509105257 (Includes many typical Android media regex)
-
-
-# Pre-compile regex patterns for performance scaling
-PATTERNS = [
-    regex.compile(pattern_OBS),
-    regex.compile(pattern_NVIDIA),
-    regex.compile(pattern_VRChat),
-    regex.compile(pattern_Screenshot),
-    regex.compile(pattern_Steam_Screenshot),
-    regex.compile(pattern_Samsung),
-    regex.compile(pattern_Generic)
-]
-
 # ======================================================================================================================
 
 # =========================================== SUB REGEX PATTERNS ===========================================================
@@ -38,8 +22,11 @@ PATTERNS = [
 sub_pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})"    # _2021-09-01
 # ======================================================================================================================
 
-extensions = (".mp4", ".mkv", ".png", ".jpeg", ".jpg")
-
+EXTENSIONS = (".mp4", ".mkv", ".png", ".jpeg", ".jpg")
+DIR_EXCEPTIONS = [
+    r"B:\▬ Videos and Photos ▬\(HANDBRAKE THESE FUCKERS)", 
+    r"B:\▬ Videos and Photos ▬\(New Recordings)"
+]
 # ======================================================================================================================
 # =========================================== END OF CONFIG ============================================================
 # ======================================================================================================================
@@ -50,18 +37,27 @@ processed_count = 0
 access_denied_count = 0
 ps_commands = []
 
+# Pre-compile regex patterns for performance scaling
+regex_OBS = regex.compile(pattern_OBS)
+regex_NVIDIA = regex.compile(pattern_NVIDIA)
+regex_VRChat = regex.compile(pattern_VRChat)
+regex_Screenshot = regex.compile(pattern_Screenshot)
+regex_Steam_Screenshot = regex.compile(pattern_Steam_Screenshot)
+
 def print_summary():
-    print(f"\n===============================")
+    print_skipped_files()
+    print(f"\n=================== SUMMARY ===================")
     print(f"PROCESSED: {processed_count}")
     print(f"SKIPPED: {skipped_count}")
     print(f"ACCESS DENIED (Read only?): {access_denied_count}")
     print(f"ERROR: {error_count}")
-    print("===============================\n")
+    print("================================================\n")
 
 def execute_recursively():
     directory = os.getcwd()
     for root, dirs, files in os.walk(directory):
         change_timestamp_with_title(root, files)
+    return
 
 def execute_only_path():
     directory = os.getcwd()
@@ -71,13 +67,14 @@ def execute_only_path():
 def change_timestamp_with_title(root, files):
     global error_count, skipped_count, processed_count, ps_commands
     for filename in files:
-        if not filename.lower().endswith(extensions):
+        if not filename.lower().endswith(EXTENSIONS):
             print(f"Skipping {filename} - Invalid Extension.")
+            skipped_files.append(filename)
             skipped_count += 1
             continue
         
         # Checks for appropiate regex patterns
-        regex_match = next((match for pattern in PATTERNS if (match := pattern.search(filename))), None)    # TODO: Understand this more
+        regex_match = regex_OBS.search(filename) or regex_NVIDIA.search(filename) or regex_VRChat.search(filename) or regex_Screenshot.search(filename) or regex_Steam_Screenshot.search(filename)
 
         if regex_match:
             # Extract parts
@@ -95,6 +92,7 @@ def change_timestamp_with_title(root, files):
             processed_count += 1
         else:
             print(f"Skipping {filename} - Pattern did not match.")
+            skipped_files.append(filename)
             skipped_count += 1
 
 def main():

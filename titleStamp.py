@@ -2,6 +2,7 @@ import os
 import re as regex
 import subprocess
 import tempfile
+import argparse
 
 # ======================================================================================================================
 # =========================================== START OF CONFIG ==========================================================
@@ -14,11 +15,26 @@ pattern_NVIDIA = r"(\d{4})\.(\d{2})\.(\d{2}) - (\d{2})\.(\d{2})\.(\d{2})"   # 20
 pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})_(\d{2})\-(\d{2})\-(\d{2})"    # _2021-09-01_21-20-52
 pattern_Screenshot = r"Screenshot (\d{4})\-(\d{2})\-(\d{2}) (\d{2})(\d{2})(\d{2})"    # Screenshot 2026-04-18 175856.png
 pattern_Steam_Screenshot = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_1"    # 20190119184452_1
+pattern_Samsung = r"(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})"   # 20260506_155609
+pattern_Generic = r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})"    # 20260509105257 (Includes many typical Android media regex)
+
+
+# Pre-compile regex patterns for performance scaling
+PATTERNS = [
+    regex.compile(pattern_OBS),
+    regex.compile(pattern_NVIDIA),
+    regex.compile(pattern_VRChat),
+    regex.compile(pattern_Screenshot),
+    regex.compile(pattern_Steam_Screenshot),
+    regex.compile(pattern_Samsung),
+    regex.compile(pattern_Generic)
+]
+
 # ======================================================================================================================
 
 # =========================================== SUB REGEX PATTERNS ===========================================================
 # Regex to match (IF NOT FOUND IN MAIN PATTERN)
-# NOT IMPLEMENTED YET
+# TODO: Unfinished, the goal was to handle shorter patterns if the original pattern fails
 sub_pattern_VRChat = r"_(\d{4})\-(\d{2})\-(\d{2})"    # _2021-09-01
 # ======================================================================================================================
 
@@ -34,13 +50,6 @@ processed_count = 0
 access_denied_count = 0
 ps_commands = []
 
-# Pre-compile regex patterns for performance scaling
-regex_OBS = regex.compile(pattern_OBS)
-regex_NVIDIA = regex.compile(pattern_NVIDIA)
-regex_VRChat = regex.compile(pattern_VRChat)
-regex_Screenshot = regex.compile(pattern_Screenshot)
-regex_Steam_Screenshot = regex.compile(pattern_Steam_Screenshot)
-
 def print_summary():
     print(f"\n===============================")
     print(f"PROCESSED: {processed_count}")
@@ -50,16 +59,14 @@ def print_summary():
     print("===============================\n")
 
 def execute_recursively():
-    directory = input("Enter directory: ")
+    directory = os.getcwd()
     for root, dirs, files in os.walk(directory):
         change_timestamp_with_title(root, files)
-    return
 
 def execute_only_path():
-    directory = input("Enter directory: ")
+    directory = os.getcwd()
     files = os.listdir(directory)
     change_timestamp_with_title(directory, files)
-    return
 
 def change_timestamp_with_title(root, files):
     global error_count, skipped_count, processed_count, ps_commands
@@ -70,7 +77,7 @@ def change_timestamp_with_title(root, files):
             continue
         
         # Checks for appropiate regex patterns
-        regex_match = regex_OBS.search(filename) or regex_NVIDIA.search(filename) or regex_VRChat.search(filename) or regex_Screenshot.search(filename) or regex_Steam_Screenshot.search(filename)
+        regex_match = next((match for pattern in PATTERNS if (match := pattern.search(filename))), None)    # TODO: Understand this more
 
         if regex_match:
             # Extract parts
@@ -89,47 +96,52 @@ def change_timestamp_with_title(root, files):
         else:
             print(f"Skipping {filename} - Pattern did not match.")
             skipped_count += 1
-    return
 
 def main():
     global access_denied_count
 
-    while True:
-        user_choice = input("Run recursively? (y/n): ").strip().lower()
-        if user_choice in ("y", "yes", "hai", "si", "ye", "yeah", "yup", "yep", "ja", "oui"):
-            execute_recursively()
-            break
-        elif user_choice in ("n", "no", "non", "nein", "nyet", "nope", "nah", "nuh"):
-            execute_only_path()
-            break
-            
-    if ps_commands:
+    # Takes arguments for recursion
+    parser = argparse.ArgumentParser(prog='titleStamp', description="Syncs files\'s metadata based on its filename")
+    parser.add_argument('-r','--recursive', action='store_true')
+    parser.add_argument('-d', '--dry_run', action='store_true')
+    args = parser.parse_args()
+    if args.recursive:
+        execute_recursively()
+    else:
+        execute_only_path()
+    
+    # Executing powershell script
+    if args.dry_run:
         print(f"\n===============================")
-        print(f"Applying {len(ps_commands)} timestamps via PowerShell batch... Please wait.")
-        ps_script_path = os.path.join(tempfile.gettempdir(), f"update_timestamps.ps1")
-        try:
-            with open(ps_script_path, "w", encoding="utf-8-sig") as f:
-                f.write("\n".join(ps_commands))
-            
-            # Capture the native PowerShell output so we can scan it for specific errors
-            result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", ps_script_path], capture_output=True, text=True)
-            
-            # Pass the console output through so the user can still read the raw log
-            if result.stdout: print(result.stdout)
-            if result.stderr: print(result.stderr)
-            
-            # Analyze combined log for specific Access Denied issues
-            combined_log = result.stdout + result.stderr
-            denied_paths = set(regex.findall(r"Access to the path '(.+?)' is denied", combined_log))
-            access_denied_count = len(denied_paths)
-            
-            print("Batch execution complete!")
-        except Exception as e:
-            print(f"Error during PowerShell batch execution: {e}")
-            error_count += 1
-        finally:
-            if os.path.exists(ps_script_path):
-                os.remove(ps_script_path)
+        print("Dry run, no files were affected. Posting summary only.")
+    else:
+        if ps_commands:
+            print(f"\n===============================")
+            print(f"Applying {len(ps_commands)} timestamps via PowerShell batch... Please wait.")
+            ps_script_path = os.path.join(tempfile.gettempdir(), "update_timestamps.ps1")
+            try:
+                with open(ps_script_path, "w", encoding="utf-8-sig") as f:
+                    f.write("\n".join(ps_commands))
+                
+                # Capture the native PowerShell output so we can scan it for specific errors
+                result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", ps_script_path], capture_output=True, text=True)
+                
+                # Pass the console output through so the user can still read the raw log
+                if result.stdout: print(result.stdout)
+                if result.stderr: print(result.stderr)
+                
+                # Analyze combined log for specific Access Denied issues
+                combined_log = result.stdout + result.stderr
+                denied_paths = set(regex.findall(r"Access to the path '(.+?)' is denied", combined_log))
+                access_denied_count = len(denied_paths)
+                
+                print("Batch execution complete!")
+            except Exception as e:
+                print(f"Error during PowerShell batch execution: {e}")
+                error_count += 1
+            finally:
+                if os.path.exists(ps_script_path):
+                    os.remove(ps_script_path)
                 
     print_summary()
                 
